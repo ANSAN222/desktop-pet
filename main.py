@@ -1,12 +1,13 @@
 import tkinter as tk
-from tkinter import Menu
+from tkinter import Menu, messagebox
 import tkinter.font as tkFont
 from PIL import Image, ImageTk, ImageDraw
 import os
 import random
 import math
-import threading
-import time
+import requests
+from io import BytesIO
+from urllib.parse import urlparse
 
 class DesktopPet:
     def __init__(self, root):
@@ -71,18 +72,49 @@ class DesktopPet:
         """加载并处理宠物图片"""
         image_path = "pet_image.png"
         
+        # 如果本地没有图片，创建占位符
         if not os.path.exists(image_path):
             self.create_placeholder_image()
         
-        self.original_image = Image.open(image_path)
+        try:
+            self.original_image = Image.open(image_path)
+            if self.original_image.mode == 'RGBA':
+                pass
+            else:
+                self.original_image = self.original_image.convert('RGBA')
+        except Exception as e:
+            print(f"无法加载图片: {e}")
+            self.create_placeholder_image()
+            self.original_image = Image.open(image_path)
+        
         self.update_pet_display()
         
     def create_placeholder_image(self):
         """如果没有图片，创建占位符"""
-        img = Image.new('RGBA', (200, 200), (255, 255, 255, 0))
+        img = Image.new('RGBA', (300, 300), (255, 255, 255, 0))
         draw = ImageDraw.Draw(img)
-        draw.ellipse([50, 50, 150, 150], fill=(100, 100, 100, 200))
+        
+        # 画一个可爱的圆形头
+        draw.ellipse([75, 50, 225, 200], fill=(200, 180, 150, 255), outline=(0, 0, 0, 255), width=3)
+        
+        # 画眼睛
+        draw.ellipse([110, 100, 140, 130], fill=(0, 0, 0, 255))
+        draw.ellipse([160, 100, 190, 130], fill=(0, 0, 0, 255))
+        draw.ellipse([120, 110, 130, 120], fill=(255, 255, 255, 255))
+        draw.ellipse([170, 110, 180, 120], fill=(255, 255, 255, 255))
+        
+        # 画鼻子
+        draw.ellipse([145, 145, 155, 155], fill=(0, 0, 0, 255))
+        
+        # 画嘴巴
+        draw.arc([130, 150, 170, 180], 0, 180, fill=(0, 0, 0, 255), width=2)
+        
+        # 画耳朵
+        draw.ellipse([70, 50, 110, 100], fill=(200, 180, 150, 255), outline=(0, 0, 0, 255), width=2)
+        draw.ellipse([190, 50, 230, 100], fill=(200, 180, 150, 255), outline=(0, 0, 0, 255), width=2)
+        
         img.save("pet_image.png")
+        print("已创建默认宠物图片")
         
     def remove_background(self, image):
         """移除图片白色背景"""
@@ -253,7 +285,8 @@ class DesktopPet:
         """创建右键菜单"""
         self.context_menu = Menu(self.root, tearoff=0)
         self.context_menu.add_command(label="调整大小", command=self.resize_pet)
-        self.context_menu.add_command(label="置顶开关", command=self.toggle_topmost)
+        topmost_label = "关闭置顶" if self.is_topmost else "启用置顶"
+        self.context_menu.add_command(label=topmost_label, command=self.toggle_topmost)
         self.context_menu.add_separator()
         self.context_menu.add_command(label="退出", command=self.exit_app)
         
